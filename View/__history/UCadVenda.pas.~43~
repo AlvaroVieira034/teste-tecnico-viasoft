@@ -1,0 +1,720 @@
+unit UCadVenda;
+
+interface
+
+{$REGION 'Uses'}
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, UCadastroPadrao, Vcl.Buttons,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Data.DB, Vcl.Grids, Vcl.DBGrids, Vcl.DBCtrls,
+  Data.FMTBcd, Data.SqlExpr, Datasnap.Provider, Datasnap.DBClient,
+  ProdutoController, VendaController, VendaItensController, FireDAC.Stan.Intf,
+  FireDAC.Stan.Option, FireDAC.Stan.Param, FireDAC.Stan.Error, FireDAC.DatS,
+  FireDAC.Phys.Intf, FireDAC.DApt.Intf, FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client, ACBrBase, ACBrSocket, ACBrCEP;
+
+{$ENDREGION}
+
+type
+  TOperacao = (opInicio, opNovo, opEditar, opNavegar);
+  TFrmCadVenda = class(TFrmCadastroPadrao)
+
+{$REGION 'Componentes'}
+    Label1: TLabel;
+    Label2: TLabel;
+    EdtCodVenda: TEdit;
+    EdtDataVenda: TEdit;
+    Label4: TLabel;
+    EdtTotalVenda: TEdit;
+    Label3: TLabel;
+    EdtNomeCliente: TEdit;
+    Label5: TLabel;
+    EdtCep: TEdit;
+    Label6: TLabel;
+    EdtEndereco: TEdit;
+    Label7: TLabel;
+    EdtComplemento: TEdit;
+    Label8: TLabel;
+    EdtBairro: TEdit;
+    Label9: TLabel;
+    EdtCidade: TEdit;
+    Label11: TLabel;
+    EdtEstado: TEdit;
+    BtnInserirItens: TButton;
+    Label10: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    Label14: TLabel;
+    EdtQuantidade: TEdit;
+    EdtPrecoUnit: TEdit;
+    EdtPrecoTotal: TEdit;
+    LCbxProdutos: TDBLookupComboBox;
+    BtnAddItemGrid: TButton;
+    BtnDelItemGrid: TButton;
+    DbGridItensPedido: TDBGrid;
+    DsVendaItem: TDataSource;
+    BtnPesquisar: TSpeedButton;
+    MTblVendaItem: TFDMemTable;
+    MTblVendaItemID_VENDA: TIntegerField;
+    MTblVendaItemCOD_VENDA: TIntegerField;
+    MTblVendaItemCOD_PRODUTO: TIntegerField;
+    MTblVendaItemDES_DESCRICAO: TStringField;
+    MTblVendaItemVAL_QUANTIDADE: TIntegerField;
+    MTblVendaItemVAL_PRECO_UNITARIO: TSingleField;
+    MTblVendaItemVAL_TOTAL_VENDA: TSingleField;
+    ACBrCEP: TACBrCEP;
+    BtnPesquisaCep: TSpeedButton;
+    BtnLimpaCampos: TSpeedButton;
+{$ENDREGION}
+
+    procedure BtnSairClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure EdtDataVendaChange(Sender: TObject);
+    procedure BtnPesquisarClick(Sender: TObject);
+    procedure BtnInserirClick(Sender: TObject);
+    procedure BtnInserirItensClick(Sender: TObject);
+    procedure BtnGravarClick(Sender: TObject);
+    procedure BtnCancelarClick(Sender: TObject);
+    procedure BtnAddItemGridClick(Sender: TObject);
+    procedure EdtQuantidadeKeyPress(Sender: TObject; var Key: Char);
+    procedure EdtPrecoUnitKeyPress(Sender: TObject; var Key: Char);
+    procedure EdtPrecoTotalKeyPress(Sender: TObject; var Key: Char);
+    procedure EdtCepKeyPress(Sender: TObject; var Key: Char);
+    procedure BtnDelItemGridClick(Sender: TObject);
+    procedure BtnAlterarClick(Sender: TObject);
+    procedure BtnPesquisaCepClick(Sender: TObject);
+    procedure BtnLimpaCamposClick(Sender: TObject);
+  private
+    ValoresOriginais: array of string;
+    procedure CarregarVendas;
+    procedure InserirVendas;
+    procedure InserirVendaItens;
+    procedure AlterarVendas;
+    procedure AlterarVendaItens;
+    function ValidarDados(tipoDados: string): Boolean;
+    procedure LimpaCamposPedido;
+    procedure LimpaCamposItens;
+    procedure PreencheCdsVendaItem(FOperacao: TOperacao);
+    procedure VerificaBotoes(FOperacao: TOperacao);
+
+  public
+    FOperacao: TOperacao;
+    pesqVenda: Boolean;
+    codigoVenda: Integer;
+  end;
+
+var
+  FrmCadVenda: TFrmCadVenda;
+  Venda: TVenda;
+  VendaItens: TVendaItens;
+  totVenda: Double;
+  idItem: Integer;
+
+
+implementation
+
+{$R *.dfm}
+
+uses UMain, UDMConexao, UDmTabelas, untFormat, Biblioteca, UPesqPedidos;
+
+
+procedure TFrmCadVenda.FormCreate(Sender: TObject);
+begin
+  inherited;
+  Venda := TVenda.Create;
+  VendaItens := TVendaItens.Create;
+  totVenda := 0;
+  pesqVenda := False;
+  SetLength(ValoresOriginais, 10);
+  FOperacao := opInicio;
+  MTblVendaItem.CreateDataSet;
+end;
+
+procedure TFrmCadVenda.FormShow(Sender: TObject);
+begin
+  inherited;
+  DbGridItensPedido.Columns[0].Width := 350;
+  DbGridItensPedido.Columns[1].Width := 80;
+  DbGridItensPedido.Columns[2].Width := 100;
+  DbGridItensPedido.Columns[3].Width := 100;
+  if FOperacao = opEditar then
+  begin
+    ValoresOriginais[0] := EdtCodVenda.Text;
+    ValoresOriginais[1] := EdtDataVenda.Text;
+    ValoresOriginais[2] := EdtTotalVenda.Text;
+    ValoresOriginais[3] := EdtNomeCliente.Text;
+    ValoresOriginais[4] := EdtCep.Text;
+    ValoresOriginais[5] := EdtEndereco.Text;
+    ValoresOriginais[6] := EdtComplemento.Text;
+    ValoresOriginais[7] := EdtBairro.Text;
+    ValoresOriginais[8] := EdtCidade.Text;
+    ValoresOriginais[9] := EdtEstado.Text;
+    BtnInserirItens.Caption := 'Alterar Itens';
+  end
+  else
+  if FOperacao = opInicio then
+  begin
+    VerificaBotoes(opInicio);
+    LimpaCamposPedido();
+    GrbDados.Enabled := False;
+  end
+  else
+  if FOperacao = opNavegar then
+  begin
+    LimpaCamposPedido();
+  end
+  else
+  if FOperacao = opNovo then
+  begin
+    BtnInserirItens.Caption := 'Inserir Itens';
+    LimpaCamposPedido();
+    EdtTotalVenda.Text := '0.00';
+    EdtDataVenda.SetFocus;
+  end;
+end;
+
+procedure TFrmCadVenda.BtnInserirClick(Sender: TObject);
+begin
+  inherited;
+  MTblVendaItem.Active := False;
+  FOperacao := opNovo;
+  VerificaBotoes(opNovo);
+  EdtDataVenda.SetFocus;
+end;
+
+procedure TFrmCadVenda.BtnPesquisaCepClick(Sender: TObject);
+begin
+  inherited;
+  try
+    ACBrCEP.BuscarPorCEP(EdtCep.Text);
+
+    if ACBrCEP.Enderecos.Count > 0 then
+    begin
+      // Pegando o primeiro resultado
+      with ACBrCEP.Enderecos[0] do
+      begin
+        EdtEndereco.Text := Logradouro;
+        EdtComplemento.Text := Complemento;
+        EdtBairro.Text := Bairro;
+        EdtCidade.Text := Municipio;
+        EdtEstado.Text := UF;
+      end;
+    end
+    else
+      ShowMessage('CEP não encontrado.');
+  except
+    on E: Exception do
+      ShowMessage('Erro ao buscar CEP: ' + E.Message);
+  end;
+end;
+
+procedure TFrmCadVenda.BtnPesquisarClick(Sender: TObject);
+begin
+  inherited;
+  pesqVenda := False;
+  if not Assigned(FrmPesqPedidos) then
+    FrmPesqPedidos := TFrmPesqPedidos.Create(Self);
+
+  FrmPesqPedidos.ShowModal;
+  FreeAndNil(FrmPesqPedidos);
+
+  if pesqVenda then
+  begin
+    VerificaBotoes(opNavegar);
+    CarregarVendas();
+    DbGridItensPedido.Refresh;
+  end;
+end;
+
+procedure TFrmCadVenda.BtnAlterarClick(Sender: TObject);
+begin
+  inherited;
+  FOperacao := opEditar;
+  VerificaBotoes(FOperacao);
+  GrbDados.Enabled := True;
+  GrbGrid.Enabled := True;
+end;
+
+procedure TFrmCadVenda.BtnInserirItensClick(Sender: TObject);
+begin
+  inherited;
+  if not ValidarDados('Venda') then
+  begin
+    Exit;
+  end;
+
+  GrbDados.Enabled := False;
+  GrbGrid.Enabled := True;
+  BtnCancelar.Enabled := True;
+  LCbxProdutos.SetFocus;
+end;
+
+procedure TFrmCadVenda.BtnLimpaCamposClick(Sender: TObject);
+begin
+  inherited;
+  LimpaCamposPedido();
+end;
+
+procedure TFrmCadVenda.BtnGravarClick(Sender: TObject);
+begin
+  inherited;
+  if FOperacao = opNovo then
+  begin
+    InserirVendas();
+    InserirVendaItens();
+    MessageDlg('Venda inserida com sucesso!', mtInformation, [mbOK],0);
+    LimpaCamposPedido();
+    LimpaCamposItens();
+    MTblVendaItem.Close;
+    VerificaBotoes(opInicio);
+  end
+  else
+  if FOperacao = opEditar then
+  begin
+    AlterarVendas();
+    //AlterarVendaItens();
+    GrbGrid.Enabled := False;
+    GrbDados.Enabled := True;
+    VerificaBotoes(opNavegar);
+  end;
+end;
+
+procedure TFrmCadVenda.BtnCancelarClick(Sender: TObject);
+begin
+  inherited;
+  LimpaCamposPedido();
+  LimpaCamposItens();
+  if MTblVendaItem.Active then
+    MTblVendaItem.Close;
+
+  if FOperacao = opEditar then
+  begin
+    //CarregarVendas();
+  end;
+
+  GrbGrid.Enabled := False;
+  BtnGravar.Enabled := False;
+  BtnCancelar.Enabled := False;
+  GrbDados.Enabled := True;
+  VerificaBotoes(opInicio);
+  EdtDataVenda.SetFocus;
+end;
+
+procedure TFrmCadVenda.AlterarVendas;
+var Venda: TVenda;
+    sErro: string;
+    //VendaItens: TVendaItens;
+begin
+  Venda := TVenda.Create;
+  VerificaBotoes(opEditar);
+
+  try
+    with Venda do
+    begin
+      Dta_Venda := StrToDate(EdtDataVenda.Text);
+      Des_NomeCliente := EdtNomeCliente.Text;
+      Des_Cep := EdtCep.Text;
+      Des_Endereco := EdtEndereco.Text;
+      Des_Complemento := EdtComplemento.Text;
+      Des_Bairro := EdtBairro.Text;
+      Des_Cidade := EdtCidade.Text;
+      Des_Estado := EdtEstado.Text;
+      Val_TotalVenda := StrToFloat(EdtTotalVenda.Text);
+    end;
+
+    if Venda.Alterar(Venda, StrToInt(EdtCodVenda.Text), sErro) = False then
+      raise Exception.Create(sErro)
+    else
+      MessageDlg('Registro Alterado com Sucesso!', mtInformation, [mbOK], 0)
+
+  finally
+    FreeAndNil(Venda);
+  end;
+end;
+
+procedure TFrmCadVenda.AlterarVendaItens;
+begin
+
+end;
+
+procedure TFrmCadVenda.CarregarVendas;
+var Venda: TVenda;
+    VendaItens: TVendaItens;
+begin
+  MTblVendaItem.Close;
+  MTblVendaItem.CreateDataSet;
+  Venda := TVenda.Create;
+  VendaItens := TVendaItens.Create;
+  Venda.Carregar(Venda, codigoVenda);
+  with Venda do
+  begin
+    EdtCodVenda.Text := IntToStr(Cod_Venda);
+    EdtDataVenda.Text := DateToStr(Dta_Venda);
+    EdtTotalVenda.Text := FormatFloat('##,###,##0.00', Val_TotalVenda);
+    EdtNomeCliente.Text := Des_NomeCliente;
+    EdtCep.Text := Des_Cep;
+    EdtEndereco.Text := Des_Endereco;
+    EdtComplemento.Text := Des_Complemento;
+    EdtBairro.Text := Des_Bairro;
+    EdtCidade.Text := Des_Cidade;
+    EdtEstado.Text := Des_Estado;
+  end;
+
+  VendaItens.Carregar(VendaItens, codigoVenda);
+  with DmTabelas.QryPesquisarItens do
+  begin
+    while not DmTabelas.QryPesquisarItens.eof do
+    begin
+      MTblVendaItem.Append;
+      MTblVendaItemID_VENDA.AsInteger := FieldByName('ID_VENDA').AsInteger;
+      MTblVendaItemCOD_VENDA.AsInteger := FieldByName('COD_VENDA').AsInteger;
+      MTblVendaItemCOD_PRODUTO.AsInteger := FieldByName('COD_PRODUTO').AsInteger;
+      MTblVendaItemDES_DESCRICAO.AsString := FieldByName('DES_DESCRICAO').AsString;
+      MTblVendaItemVAL_QUANTIDADE.AsInteger := FieldByName('VAL_QUANTIDADE').AsInteger;
+      MTblVendaItemVAL_PRECO_UNITARIO.AsFloat := FieldByName('VAL_PRECO_UNITARIO').AsFloat;
+      MTblVendaItemVAL_TOTAL_VENDA.AsFloat := FieldByName('VAL_TOTAL_VENDA').AsFloat;
+      MTblVendaItem.Post;
+      DmTabelas.QryPesquisarItens.Next;
+    end;
+  end;
+end;
+
+procedure TFrmCadVenda.InserirVendas;
+var sErro: String;
+begin
+  with Venda do
+  begin
+    Dta_Venda := StrToDate(EdtDataVenda.Text);
+    Des_NomeCliente := EdtNomeCliente.Text;
+    Des_Cep := EdtCep.Text;
+    Des_Endereco := EdtEndereco.Text;
+    Des_Complemento := EdtComplemento.Text;
+    Des_Bairro := EdtBairro.Text;
+    Des_Cidade := EdtCidade.Text;
+    Des_Estado:= EdtEstado.Text;
+    Val_TotalVenda := StrToFloat(EdtTotalVenda.Text);
+
+    if Venda.Inserir(Venda, sErro) = false then
+      raise Exception.Create(sErro);
+  end;
+end;
+
+procedure TFrmCadVenda.InserirVendaItens;
+var sErro : string;
+begin
+  MTblVendaItem.First;
+  while not MTblVendaItem.eof do
+  begin
+    with VendaItens do
+    begin
+      Cod_Venda := Venda.Cod_Venda;
+      Cod_Produto := MTblVendaItemCOD_PRODUTO.AsInteger;
+      Des_Descricao := MTblVendaItemDES_DESCRICAO.AsString;
+      Val_Preco_Unitario := MTblVendaItemVAL_PRECO_UNITARIO.AsFloat;
+      Val_Quantidade := MTblVendaItemVAL_QUANTIDADE.AsInteger;
+      Val_Total_Venda := MTblVendaItemVAL_TOTAL_VENDA.AsFloat;
+
+      if VendaItens.Inserir(VendaItens, sErro) = false then
+        raise Exception.Create(sErro);
+
+    end;
+    MTblVendaItem.Next;
+  end;
+
+end;
+
+procedure TFrmCadVenda.LimpaCamposPedido;
+begin
+  EdtCodVenda.Text := EmptyStr;
+  EdtDataVenda.Text := EmptyStr;
+  EdtNomeCliente.Text := EmptyStr;
+  EdtCep.Text := EmptyStr;
+  EdtEndereco.Text := EmptyStr;
+  EdtComplemento.Text := EmptyStr;
+  EdtBairro.Text := EmptyStr;
+  EdtCidade.Text := EmptyStr;
+  EdtEstado.Text := EmptyStr;
+end;
+
+procedure TFrmCadVenda.LimpaCamposItens;
+begin
+  LCbxProdutos.KeyValue := 0;
+  EdtQuantidade.Text := EmptyStr;
+  EdtPrecoUnit.Text := EmptyStr;
+  EdtPrecoTotal.Text := EmptyStr;
+end;
+
+procedure TFrmCadVenda.PreencheCdsVendaItem(FOperacao: TOperacao);
+begin
+  with MTblVendaItem do
+  begin
+    MTblVendaItem.Append;
+    //MTblVendaItemID_ITEM.AsInteger := idItem;
+    MTblVendaItemCOD_PRODUTO.AsInteger := LCbxProdutos.KeyValue;
+    MTblVendaItemDES_DESCRICAO.AsString := LCbxProdutos.Text;
+    MTblVendaItemVAL_QUANTIDADE.AsInteger := StrToInt(EdtQuantidade.Text);
+    MTblVendaItemVAL_PRECO_UNITARIO.AsFloat := StrToFloat(EdtPrecoUnit.Text);
+    MTblVendaItemVAL_TOTAL_VENDA.AsFloat := StrToFloat(EdtPrecoTotal.Text);
+    MTblVendaItem.Post;
+    totVenda := totVenda + MTblVendaItemVAL_TOTAL_VENDA.AsFloat;
+    EdtTotalVenda.Text := FloatToStr(totVenda);
+  end;
+end;
+
+function TFrmCadVenda.ValidarDados(tipoDados: string): Boolean;
+begin
+  Result := False;
+  MTblVendaItem.Active := True;
+  if tipoDados = 'Venda' then
+  begin
+    if EdtDataVenda.Text = EmptyStr then
+    begin
+      MessageDlg('A data da venda deve ser informada!', mtInformation, [mbOK], 0);
+      EdtDataVenda.SetFocus;
+      Exit;
+    end;
+
+    if EdtNomeCliente.Text = EmptyStr then
+    begin
+      MessageDlg('O nome do cliente deve ser informado!', mtInformation, [mbOK], 0);
+      EdtNomeCliente.SetFocus;
+      Exit;
+    end;
+
+    if EdtCep.Text = EmptyStr then
+    begin
+      MessageDlg('O cep do cliente deve ser informado!', mtInformation, [mbOK], 0);
+      EdtCep.SetFocus;
+      Exit;
+    end;
+
+    if EdtEndereco.Text = EmptyStr then
+    begin
+      MessageDlg('O endereço do cliente deve ser informado!', mtInformation, [mbOK], 0);
+      EdtEndereco.SetFocus;
+      Exit;
+    end;
+
+    if EdtCidade.Text = EmptyStr then
+    begin
+      MessageDlg('A cidade do cliente deve ser informada!', mtInformation, [mbOK], 0);
+      EdtCidade.SetFocus;
+      Exit;
+    end;
+
+    if EdtEstado.Text = EmptyStr then
+    begin
+      MessageDlg('O estado do cliente deve ser informado!', mtInformation, [mbOK], 0);
+      EdtEstado.SetFocus;
+      Exit;
+    end;
+  end;
+
+  if tipoDados = 'Item' then
+  begin
+    if LCbxProdutos.KeyValue = Null then
+    begin
+      MessageDlg('O produto precisa ser informado!', mtInformation, [mbOK], 0);
+      LCbxProdutos.SetFocus;
+      Exit;
+    end;
+
+    if MTblVendaItem.Locate('COD_PRODUTO', FloatToStr(LCbxProdutos.KeyValue), []) then
+    begin
+      MessageDlg('Produto já inserido!', mtError, [mbOK],0);
+      LCbxProdutos.SetFocus;
+      Exit;
+    end;
+
+    if EdtQuantidade.Text = '' then
+    begin
+      MessageDlg('A quantidade deve ser preenchida!', mtInformation, [mbOK], 0);
+      EdtQuantidade.SetFocus;
+      Exit;
+    end;
+
+    if StrToFloat(EdtQuantidade.Text) = 0 then
+    begin
+      MessageDlg('A quantidade não pode ser igual a 0!', mtInformation, [mbOK], 0);
+      EdtQuantidade.SetFocus;
+      Exit;
+    end;
+
+    if EdtPrecoUnit.Text = '' then
+    begin
+      MessageDlg('o preço unitário deve ser preenchido!', mtInformation, [mbOK], 0);
+      EdtPrecoUnit.SetFocus;
+      Exit;
+    end;
+
+    if StrToFloat(EdtPrecoUnit.Text) = 0 then
+    begin
+      MessageDlg('O preço unitário não pode ser igual a 0!', mtInformation, [mbOK], 0);
+      EdtPrecoUnit.SetFocus;
+      Exit;
+    end;
+
+    if EdtPrecoTotal.Text = '' then
+    begin
+      MessageDlg('o preço total deve ser preenchido!', mtInformation, [mbOK], 0);
+      EdtPrecoTotal.SetFocus;
+      Exit;
+    end;
+
+    if StrToFloat(EdtPrecoTotal.Text) = 0 then
+    begin
+      MessageDlg('O preço total não pode ser igual a 0!', mtInformation, [mbOK], 0);
+      EdtPrecoTotal.SetFocus;
+      Exit;
+    end;
+  end;
+  Result := True;
+end;
+
+procedure TFrmCadVenda.VerificaBotoes(FOperacao: TOperacao);
+begin
+  if FOperacao = opInicio then
+  begin
+    BtnInserir.Enabled := True;
+    BtnPesquisar.Enabled := True;
+    BtnAlterar.Enabled := False;
+    BtnExcluir.Enabled := False;
+    BtnGravar.Enabled := False;
+    BtnCancelar.Enabled := False;
+    BtnSair.Enabled := True;
+    BtnInserirItens.Enabled := False;
+    BtnPesquisaCep.Enabled := False;
+    BtnLimpaCampos.Enabled := False;
+    GrbGrid.Enabled := False;
+    DbGridItensPedido.Enabled := False;
+  end
+  else
+  if FOperacao = opNovo then
+  begin
+    BtnInserir.Enabled := False;
+    BtnPesquisar.Enabled := False;
+    BtnAlterar.Enabled := False;
+    BtnExcluir.Enabled := False;
+    BtnGravar.Enabled := False;
+    BtnCancelar.Enabled := True;
+    BtnSair.Enabled := False;
+    BtnInserirItens.Enabled := True;
+    BtnPesquisaCep.Enabled := True;
+    BtnLimpaCampos.Enabled := True;
+    DbGridItensPedido.Enabled := False;
+    GrbGrid.Enabled := False;
+    GrbDados.Enabled := True;
+  end
+  else
+  if FOperacao = opEditar then
+  begin
+    BtnInserir.Enabled := False;
+    BtnPesquisar.Enabled := False;
+    BtnAlterar.Enabled := False;
+    BtnExcluir.Enabled := False;
+    BtnGravar.Enabled := True;
+    BtnCancelar.Enabled := True;
+    BtnSair.Enabled := False;
+    BtnInserirItens.Enabled := False;
+    BtnPesquisaCep.Enabled := True;
+    BtnLimpaCampos.Enabled := True;
+    DbGridItensPedido.Enabled := False;
+    GrbGrid.Enabled := False;
+    GrbDados.Enabled := True;
+  end;
+  if FOperacao = opNavegar then
+  begin
+    BtnInserir.Enabled := True;
+    BtnPesquisar.Enabled := True;
+    BtnAlterar.Enabled := True;
+    BtnExcluir.Enabled := True;
+    BtnGravar.Enabled := False;
+    BtnCancelar.Enabled := False;
+    BtnSair.Enabled := True;
+    BtnInserirItens.Enabled := False;
+    BtnPesquisaCep.Enabled := False;
+    BtnLimpaCampos.Enabled := False;
+    DbGridItensPedido.Enabled := False;
+    GrbGrid.Enabled := False;
+    GrbDados.Enabled := False;
+    //DbGridItensPedido.Refresh;
+  end;
+end;
+
+procedure TFrmCadVenda.BtnAddItemGridClick(Sender: TObject);
+begin
+  inherited;
+  if not ValidarDados('Item') then
+  begin
+    Exit;
+  end
+  else
+  begin
+    PreencheCdsVendaItem(FOperacao);
+    LimpaCamposItens;
+    BtnGravar.Enabled := True;
+    LCbxProdutos.SetFocus;
+  end;
+end;
+
+procedure TFrmCadVenda.BtnDelItemGridClick(Sender: TObject);
+begin
+  inherited;
+  if MessageDlg('Deseja excluir o registro selecionado?', mtConfirmation, [mbYes, mbNo], mrNo) = mrNo then
+    Exit
+  else
+  begin
+    MTblVendaItem.Locate('ID_VENDA', MTblVendaItemID_VENDA.AsInteger, []);
+    totVenda := totVenda -  MTblVendaItemVAL_TOTAL_VENDA.AsFloat;
+    EdtTotalVenda.Text := FloatToStr(totVenda);
+    MTblVendaItem.Delete;
+    MTblVendaItem.ApplyUpdates(0);
+    BtnGravar.Enabled := True;
+  end;
+end;
+
+procedure TFrmCadVenda.EdtCepKeyPress(Sender: TObject; var Key: Char);
+begin
+  inherited;
+  if not( key in['0'..'9', '-', #08] ) then
+    key:=#0;
+end;
+
+procedure TFrmCadVenda.EdtDataVendaChange(Sender: TObject);
+begin
+  inherited;
+  Formatar(EdtDataVenda, TFormato.Dt, '')
+end;
+
+procedure TFrmCadVenda.EdtPrecoTotalKeyPress(Sender: TObject; var Key: Char);
+begin
+  inherited;
+  if not( key in['0'..'9', ',', #08] ) then
+    key:=#0;
+end;
+
+procedure TFrmCadVenda.EdtPrecoUnitKeyPress(Sender: TObject; var Key: Char);
+begin
+  inherited;
+  if not( key in['0'..'9', ',', #08] ) then
+    key:=#0;
+end;
+
+procedure TFrmCadVenda.EdtQuantidadeKeyPress(Sender: TObject; var Key: Char);
+begin
+  inherited;
+  if not( key in['0'..'9',#08] ) then
+    key:=#0;
+end;
+
+procedure TFrmCadVenda.BtnSairClick(Sender: TObject);
+begin
+  inherited;
+  //Vendas.Free;
+  //VendasItens.Free;
+  Close;
+end;
+
+end.

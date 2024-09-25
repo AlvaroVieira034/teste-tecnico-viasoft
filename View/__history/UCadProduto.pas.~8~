@@ -1,0 +1,89 @@
+unit UCadProduto;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, UCadastroPadrao, Vcl.Buttons,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Data.DB, Vcl.Grids, Vcl.DBGrids, Data.FMTBcd,
+  Datasnap.Provider, Datasnap.DBClient, Data.SqlExpr, Data.DBXFirebird;
+
+type
+  TFrmCadProduto = class(TFrmCadastroPadrao)
+    Label1: TLabel;
+    Label2: TLabel;
+    Label6: TLabel;
+    EdtPrecoUnitario: TEdit;
+    EdtCodProduto: TEdit;
+    EdtDescricao: TEdit;
+    Label3: TLabel;
+    Edit1: TEdit;
+    PnlPesquisar: TPanel;
+    Label4: TLabel;
+    BtnPesquisar: TSpeedButton;
+    EdtPesquisar: TEdit;
+    CbxFiltro: TComboBox;
+    LblTotRegistros: TLabel;
+    DBGridProdutos: TDBGrid;
+    procedure BtnSairClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+
+  private
+    var filtroOn: boolean;
+    procedure PesquisarProdutos;
+    procedure ExcluirProdutos;
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmCadProduto: TFrmCadProduto;
+  campoIndice: string;
+
+implementation
+
+{$R *.dfm}
+
+uses UMain, UDMConexao, UDmTabelas, ProdutoController, untFormat, Biblioteca;
+
+
+procedure TFrmCadProduto.BtnSairClick(Sender: TObject);
+begin
+  inherited;
+  Close;
+end;
+
+procedure TFrmCadProduto.ExcluirProdutos;
+begin
+
+end;
+
+procedure TFrmCadProduto.FormShow(Sender: TObject);
+begin
+  inherited;
+  filtroOn := False;
+  PesquisarProdutos();
+end;
+
+procedure TFrmCadProduto.PesquisarProdutos;
+var Produto : TProduto;
+begin
+  Produto := TProduto.Create;
+  try
+    if CbxFiltro.Text = 'Código' then
+      campoIndice := 'prd.cod_produto'
+    else
+    if CbxFiltro.Text = 'Nome' then
+      campoIndice := 'prd.des_nomeproduto'
+    else
+      campoIndice := 'prd.des_descricao';
+
+    Produto.Pesquisar(Trim(EdtPesquisar.Text), campoIndice, '');
+  finally
+    FreeAndNil(Produto);
+  end;
+  LblTotRegistros.Caption := 'Produtos: ' + InttoStr(DmTabelas.DsProdutos.DataSet.RecordCount);
+
+end;
+
+end.

@@ -1,0 +1,368 @@
+unit UCadProduto;
+
+interface
+
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, UCadastroPadrao, Vcl.Buttons,
+  Vcl.StdCtrls, Vcl.ExtCtrls, Data.DB, Vcl.Grids, Vcl.DBGrids, Data.FMTBcd,
+  Datasnap.Provider, Datasnap.DBClient, Data.SqlExpr, Data.DBXFirebird;
+
+type
+  TOperacao = (opInicio, opNovo, opEditar, opNavegar);
+  TFrmCadProduto = class(TFrmCadastroPadrao)
+
+{$REGION 'Componentes'}
+    Label1: TLabel;
+    Label2: TLabel;
+    Label6: TLabel;
+    EdtPrecoUnitario: TEdit;
+    EdtCodProduto: TEdit;
+    EdtDescricao: TEdit;
+    Label3: TLabel;
+    EdtNomeProduto: TEdit;
+    PnlPesquisar: TPanel;
+    Label4: TLabel;
+    BtnPesquisar: TSpeedButton;
+    EdtPesquisar: TEdit;
+    CbxFiltro: TComboBox;
+    LblTotRegistros: TLabel;
+    DBGridProdutos: TDBGrid;
+
+{$ENDREGION}
+
+    procedure BtnSairClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure DBGridProdutosDblClick(Sender: TObject);
+    procedure BtnAlterarClick(Sender: TObject);
+    procedure BtnCancelarClick(Sender: TObject);
+    procedure BtnInserirClick(Sender: TObject);
+    procedure BtnGravarClick(Sender: TObject);
+    procedure EdtPrecoUnitarioKeyPress(Sender: TObject; var Key: Char);
+    procedure BtnExcluirClick(Sender: TObject);
+
+  private
+    var filtroOn: boolean;
+    ValoresOriginais: array of string;
+
+    procedure PesquisarProdutos;
+    procedure ExcluirProdutos;
+
+    procedure CarregarProdutos;
+    procedure InserirProdutos;
+    procedure AlterarProdutos;
+    function ValidarDados: Boolean;
+    procedure GravarDados;
+    procedure LimpaCampos(FOperacao: TOperacao);
+    procedure VerificaBotoes(FOperacao: TOperacao);
+
+  public
+    FOperacao: TOperacao;
+  end;
+
+var
+  FrmCadProduto: TFrmCadProduto;
+  campoIndice: string;
+
+implementation
+
+{$R *.dfm}
+
+uses UMain, UDMConexao, UDmTabelas, ProdutoController, untFormat, Biblioteca;
+
+
+procedure TFrmCadProduto.FormShow(Sender: TObject);
+begin
+  inherited;
+  filtroOn := False;
+  PesquisarProdutos();
+  VerificaBotoes(opInicio)
+end;
+
+procedure TFrmCadProduto.CarregarProdutos;
+var Produto: TProduto;
+begin
+  Produto:= TProduto.Create;
+  try
+    Produto.Carregar(Produto, DmTabelas.DsProdutos.DataSet.FieldByName('COD_PRODUTO').AsInteger);
+    with Produto do
+    begin
+      EdtCodProduto.Text := IntToStr(Cod_Produto);
+      EdtNomeProduto.Text := Des_NomeProduto;
+      EdtDescricao.Text := Des_Descricao;
+      EdtPrecoUnitario.Text := FormatFloat('##,###,##0.00', Val_Preco);
+    end;
+  finally
+    FreeAndNil(Produto);
+  end;
+end;
+
+procedure TFrmCadProduto.PesquisarProdutos;
+var Produto : TProduto;
+begin
+  Produto := TProduto.Create;
+  try
+    if CbxFiltro.Text = 'Código' then
+      campoIndice := 'prd.cod_produto'
+    else
+    if CbxFiltro.Text = 'Nome' then
+      campoIndice := 'prd.des_nomeproduto'
+    else
+      campoIndice := 'prd.des_descricao';
+
+    Produto.Pesquisar(Trim(EdtPesquisar.Text), campoIndice, '');
+  finally
+    FreeAndNil(Produto);
+  end;
+  LblTotRegistros.Caption := 'Produtos: ' + InttoStr(DmTabelas.DsProdutos.DataSet.RecordCount);
+end;
+
+procedure TFrmCadProduto.InserirProdutos;
+var Produto : TProduto;
+    sErro: String;
+begin
+  Produto := TProduto.Create;
+  try
+    with Produto do
+    begin
+      Des_NomeProduto := EdtNomeProduto.Text;
+      Des_Descricao := EdtDescricao.Text;
+      Val_Preco := StrToFloat(EdtPrecoUnitario.Text);
+
+      if Produto.Inserir(Produto, sErro) = false then
+        raise Exception.Create(sErro)
+      else
+        MessageDlg('Registro incluido com sucesso !!', mtInformation, [mbOk], 0);
+    end;
+  finally
+    FreeAndNil(Produto);
+  end;
+end;
+
+procedure TFrmCadProduto.AlterarProdutos;
+var Produto : TProduto;
+    sErro: String;
+begin
+  Produto := TProduto.Create;
+  try
+    with Produto do
+    begin
+      Des_NomeProduto := EdtNomeProduto.Text;
+      Des_Descricao := EdtDescricao.Text;
+      Val_Preco := StrToFloat(EdtPrecoUnitario.Text);
+    end;
+
+    if Produto.Alterar(Produto, StrToInt(EdtCodProduto.Text), sErro) = False then
+      raise Exception.Create(sErro)
+    else
+      MessageDlg('Registro alterado com sucesso !!', mtInformation, [mbOK], 0);
+
+  finally
+    FreeAndNil(Produto);
+  end;
+end;
+
+procedure TFrmCadProduto.ExcluirProdutos;
+var Produto : TProduto;
+    sErro : String;
+begin
+  Produto := TProduto.Create;
+  try
+    if MessageDlg('Deseja realmente excluir o produto selecionado ?',mtConfirmation, [mbYes, mbNo],0) = IDYES then
+      if Produto.Excluir(DmTabelas.DsProdutos.DataSet.FieldByName('COD_PRODUTO').AsInteger, sErro) = False then
+        raise Exception.Create(sErro);
+
+  finally
+    FreeAndNil(Produto);
+  end;
+end;
+
+procedure TFrmCadProduto.GravarDados;
+var Produto : TProduto;
+begin
+  Produto := TProduto.Create;
+  try
+    case FOperacao of
+      opNovo    : InserirProdutos();
+      opEditar  : AlterarProdutos();
+    end;
+    DmTabelas.DsProdutos.DataSet.Refresh;
+  finally
+    FreeAndNil(Produto);
+  end;
+
+end;
+
+procedure TFrmCadProduto.VerificaBotoes(FOperacao: TOperacao);
+begin
+  if FOperacao = opInicio then
+  begin
+    BtnInserir.Enabled := True;
+    BtnAlterar.Enabled := False;
+    BtnExcluir.Enabled := False;
+    BtnGravar.Enabled := False;
+    BtnCancelar.Enabled := False;
+    BtnSair.Enabled := True;
+    DBGridProdutos.Enabled := True;
+  end
+  else
+  if (FOperacao = opEditar) or (FOperacao = opNovo) then
+  begin
+    BtnInserir.Enabled := False;
+    BtnAlterar.Enabled := False;
+    BtnExcluir.Enabled := False;
+    BtnGravar.Enabled := True;
+    BtnCancelar.Enabled := True;
+    BtnSair.Enabled := False;
+    DBGridProdutos.Enabled := False;
+    GrbGrid.Enabled := False;
+    GrbDados.Enabled := True;
+    EdtNomeProduto.SetFocus;
+  end;
+  if FOperacao = opNavegar then
+  begin
+    BtnInserir.Enabled := True;
+    BtnAlterar.Enabled := True;
+    BtnExcluir.Enabled := True;
+    BtnGravar.Enabled := False;
+    BtnCancelar.Enabled := False;
+    BtnSair.Enabled := True;
+    DBGridProdutos.Enabled := True;
+    GrbGrid.Enabled := True;
+    GrbDados.Enabled := False;
+    DBGridProdutos.Refresh;
+  end;
+end;
+
+procedure TFrmCadProduto.DBGridProdutosDblClick(Sender: TObject);
+begin
+  inherited;
+  GrbDados.Enabled := True;
+  GrbGrid.Enabled := False;
+  CarregarProdutos;
+  VerificaBotoes(opNavegar);
+end;
+
+procedure TFrmCadProduto.LimpaCampos(FOperacao: TOperacao);
+begin
+  if FOperacao = opNovo then
+  begin
+    EdtCodProduto.Text := '';
+    EdtNomeProduto.Text := '';
+    EdtDescricao.Text := '';
+    EdtPrecoUnitario.Text := '';
+    GrbDados.Enabled := True;
+    DBGridProdutos.Enabled := False;
+    GrbGrid.Enabled := False;
+  end
+  else
+  if FOperacao = opNavegar then
+  begin
+    EdtCodProduto.Text := '';
+    EdtNomeProduto.Text := '';
+    EdtDescricao.Text := '';
+    EdtPrecoUnitario.Text := '';
+    GrbDados.Enabled := True;
+    DBGridProdutos.Enabled := False;
+    GrbGrid.Enabled := False;
+  end
+  else
+  if FOperacao = opEditar then
+  begin
+    GrbDados.Enabled := False;
+    DBGridProdutos.Enabled := True;
+    GrbGrid.Enabled := True;
+    DBGridProdutos.Refresh;
+  end;
+end;
+
+function TFrmCadProduto.ValidarDados: Boolean;
+begin
+  Result := False;
+  if EdtNomeProduto.Text = EmptyStr then
+  begin
+    MessageDlg('O nome do produto deve ser informad0!', mtInformation, [mbOK], 0);
+    EdtNomeProduto.SetFocus;
+    Exit;
+  end;
+
+  if EdtDescricao.Text = EmptyStr then
+  begin
+    MessageDlg('A descrição do produto deve ser informada!', mtInformation, [mbOK], 0);
+    EdtDescricao.SetFocus;
+    Exit;
+  end;
+
+  if StrToFloat(EdtPrecoUnitario.Text) = 0 then
+  begin
+    MessageDlg('O preço unitário deve ser maior que 0!', mtInformation, [mbOK], 0);
+    EdtPrecoUnitario.SetFocus;
+    Exit;
+  end;
+  Result := True;
+end;
+
+procedure TFrmCadProduto.BtnAlterarClick(Sender: TObject);
+begin
+  inherited;
+  FOperacao := opEditar;
+  VerificaBotoes(FOperacao);
+  EdtNomeProduto.SetFocus;
+end;
+
+procedure TFrmCadProduto.BtnCancelarClick(Sender: TObject);
+begin
+  inherited;
+  LimpaCampos(opNavegar);
+  VerificaBotoes(opNavegar);
+end;
+
+procedure TFrmCadProduto.BtnExcluirClick(Sender: TObject);
+begin
+  inherited;
+  ExcluirProdutos();
+  LimpaCampos(opNavegar);
+  DmTabelas.DsProdutos.DataSet.Refresh;
+
+end;
+
+procedure TFrmCadProduto.BtnGravarClick(Sender: TObject);
+begin
+  inherited;
+  if not ValidarDados then
+  begin
+    Exit;
+  end
+  else
+  begin
+    FOperacao := opNovo;
+    GravarDados();
+    VerificaBotoes(opNavegar);
+    LimpaCampos(opNavegar);
+  end;
+end;
+
+procedure TFrmCadProduto.BtnInserirClick(Sender: TObject);
+begin
+  inherited;
+  FOperacao := opNovo
+  VerificaBotoes(opNovo);
+  LimpaCampos(opNovo);
+end;
+
+procedure TFrmCadProduto.EdtPrecoUnitarioKeyPress(Sender: TObject; var Key: Char);
+begin
+  inherited;
+  if not( key in['0'..'9', ',', #08] ) then
+    key:=#0;
+end;
+
+procedure TFrmCadProduto.BtnSairClick(Sender: TObject);
+begin
+  inherited;
+  Close;
+end;
+
+
+end.

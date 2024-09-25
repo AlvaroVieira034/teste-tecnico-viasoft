@@ -1,0 +1,97 @@
+unit UMain;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Data.DBXFirebird, Data.FMTBcd, Data.DB,
+  Datasnap.Provider, Datasnap.DBClient, Vcl.Grids, Vcl.DBGrids, Data.SqlExpr,
+  Vcl.Buttons, Vcl.ExtCtrls, System.ImageList, Vcl.ImgList, Vcl.Menus;
+
+type
+  TFrmMain = class(TForm)
+    PanelBotoesMenu: TPanel;
+    BtnSair: TSpeedButton;
+    BtnVendas: TSpeedButton;
+    BtnRelatorios: TSpeedButton;
+    BtnProdutos: TSpeedButton;
+    Timer1: TTimer;
+    ImageList: TImageList;
+    PopupMenu: TPopupMenu;
+    Produtos1: TMenuItem;
+    Vendas1: TMenuItem;
+    procedure BtnProdutosClick(Sender: TObject);
+    procedure BtnSairClick(Sender: TObject);
+    procedure BtnVendasClick(Sender: TObject);
+    procedure SpeedButtonRelatoriosClick(Sender: TObject);
+    procedure BtnRelatoriosClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Produtos1Click(Sender: TObject);
+    procedure Vendas1Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmMain: TFrmMain;
+
+implementation
+
+{$R *.dfm}
+
+uses UDmConexao, UDmTabelas, UCadProduto, UCadVenda;
+
+procedure TFrmMain.BtnProdutosClick(Sender: TObject);
+begin
+  if not Assigned(FrmCadProduto) then
+    FrmCadProduto := TFrmCadProduto.Create(Self);
+
+  FrmCadProduto.ShowModal;
+  FreeAndNil(FrmCadProduto);
+end;
+
+procedure TFrmMain.BtnSairClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TFrmMain.BtnVendasClick(Sender: TObject);
+begin
+  if not Assigned(FrmCadVenda) then
+    FrmCadVenda := TFrmCadVenda.Create(Self);
+
+  FrmCadVenda.ShowModal;
+  FreeAndNil(FrmCadVenda);
+end;
+
+
+procedure TFrmMain.FormCreate(Sender: TObject);
+begin
+  // Configurações do PopupMenu
+  with PopupMenu.Items.Add do
+  begin
+    Caption := 'Produtos';
+    OnClick := MenuOption1Click;
+  end;
+
+  with PopupMenu.Items.Add do
+  begin
+    Caption := 'Vendas';
+    OnClick := MenuOption2Click;
+  end;
+
+end;
+
+procedure TFrmMain.Produtos1Click(Sender: TObject);
+begin
+  ShowMessage('Relatório de Produtos');
+end;
+
+procedure TFrmMain.Vendas1Click(Sender: TObject);
+begin
+  ShowMessage('Relatório de Vendas');
+end;
+
+end.

@@ -1,0 +1,55 @@
+unit UMain;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Data.DBXFirebird, Data.FMTBcd, Data.DB,
+  Datasnap.Provider, Datasnap.DBClient, Vcl.Grids, Vcl.DBGrids, Data.SqlExpr,
+  Vcl.Buttons, Vcl.ExtCtrls;
+
+type
+  TFrmMain = class(TForm)
+    SQLConnection1: TSQLConnection;
+    SQLQuery1: TSQLQuery;
+    DataSource1: TDataSource;
+    ClientDataSet1: TClientDataSet;
+    DataSetProvider1: TDataSetProvider;
+    PanelBotoesMenu: TPanel;
+    BtnSair: TSpeedButton;
+    BtnVendas: TSpeedButton;
+    SpeedButtonRelatorios: TSpeedButton;
+    BtnProdutos: TSpeedButton;
+    DBGrid1: TDBGrid;
+    procedure BtnProdutosClick(Sender: TObject);
+    procedure BtnSairClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmMain: TFrmMain;
+
+implementation
+
+{$R *.dfm}
+
+uses UDmConexao, UDmTabelas, UCadProduto;
+
+procedure TFrmMain.BtnProdutosClick(Sender: TObject);
+begin
+  if not Assigned(FrmCadProduto) then
+    FrmCadProduto := TFrmCadProduto.Create(Self);
+
+  FrmCadProduto.ShowModal;
+  FreeAndNil(FrmCadProduto);
+end;
+
+procedure TFrmMain.BtnSairClick(Sender: TObject);
+begin
+  Close;
+end;
+
+end.
