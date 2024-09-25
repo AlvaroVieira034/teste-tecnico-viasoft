@@ -1,0 +1,115 @@
+object FrmPesqPedidos: TFrmPesqPedidos
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu]
+  Caption = 'Pesquisa de Vendas'
+  ClientHeight = 370
+  ClientWidth = 710
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poMainFormCenter
+  OnShow = FormShow
+  PixelsPerInch = 96
+  TextHeight = 13
+  object PnlFundo: TPanel
+    Left = 0
+    Top = 0
+    Width = 710
+    Height = 370
+    Align = alClient
+    TabOrder = 0
+    object GroupBox1: TGroupBox
+      Left = 1
+      Top = 1
+      Width = 708
+      Height = 368
+      Align = alClient
+      Caption = ' Selecione uma Venda'
+      TabOrder = 0
+      DesignSize = (
+        708
+        368)
+      object DbGridPedidos: TDBGrid
+        Left = 3
+        Top = 21
+        Width = 696
+        Height = 344
+        Anchors = [akLeft, akTop, akRight, akBottom]
+        DataSource = DmTabelas.DsVendas
+        TabOrder = 0
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+        OnDblClick = DbGridPedidosDblClick
+        Columns = <
+          item
+            Expanded = False
+            FieldName = 'COD_VENDA'
+            Title.Caption = 'C'#243'digo da Venda'
+            Visible = True
+          end
+          item
+            Alignment = taCenter
+            Expanded = False
+            FieldName = 'DTA_VENDA'
+            Title.Alignment = taCenter
+            Title.Caption = 'Data da Venda'
+            Width = 84
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_NOMECLIENTE'
+            Title.Caption = 'Nome do Cliente'
+            Width = 386
+            Visible = True
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_CEP'
+            Visible = False
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_ENDERECO'
+            Visible = False
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_COMPLEMENTO'
+            Visible = False
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_BAIRRO'
+            Visible = False
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_CIDADE'
+            Visible = False
+          end
+          item
+            Expanded = False
+            FieldName = 'DES_ESTADO'
+            Visible = False
+          end
+          item
+            Expanded = False
+            FieldName = 'VAL_TOTAL_VENDA'
+            Title.Alignment = taRightJustify
+            Title.Caption = 'Total da Venda'
+            Width = 97
+            Visible = True
+          end>
+      end
+    end
+  end
+end

@@ -1,0 +1,208 @@
+unit ProdutoController;
+
+interface
+
+uses
+  System.SysUtils, UDmTabelas, UDmConexao;
+
+Type
+  TProduto = class
+  private
+    FCod_Produto: Integer;
+    FDes_NomeProduto: string;
+    FDes_Descricao: string;
+    FVal_Preco: Double;
+    procedure SetDes_Descricao(const Value: String);
+
+  public
+    procedure Pesquisar(sNome, campoIndice, filtro: String);
+    procedure Carregar(Produto: TProduto;  iCodigo: Integer);
+    function Inserir(Produto: TProduto; out sErro: String): Boolean;
+    function Alterar(Produto: TProduto; iCodigo: Integer; out sErro: String): Boolean;
+    function Excluir(iCodigo: Integer; out sErro : String): Boolean;
+    function RetornaValorUnitario(iCodigo: integer): Double;
+
+    property Cod_Produto: Integer read FCod_Produto write FCod_Produto;
+    property Des_NomeProduto: string read FDes_NomeProduto write FDes_NomeProduto;
+    property Des_Descricao: string read FDes_Descricao write SetDes_Descricao;
+    property Val_Preco: Double read FVal_Preco write FVal_Preco;
+
+  end;
+
+implementation
+
+uses
+  FireDAC.Comp.Client, FireDAC.Stan.Error, Data.SqlExpr;
+
+{ TProduto }
+
+procedure TProduto.Pesquisar(sNome, campoIndice, filtro: String);
+begin
+  with DmTabelas.TblProdutos do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('select prd.cod_produto');
+    SQL.Add(',prd.des_nomeproduto');
+    SQL.Add(',prd.des_descricao');
+    SQL.Add(',prd.val_preco');
+    SQL.Add('from tab_produto prd');
+    SQL.Add('where ' + campoIndice + ' like :pNOME');
+    SQL.Add('order by ' + campoIndice);
+    ParamByName('PNOME').AsString := sNome + '%';
+    Prepared := True;
+    Open();
+  end;
+end;
+
+procedure TProduto.Carregar(Produto: TProduto; iCodigo: Integer);
+var QryProduto : TSQLQuery;
+begin
+  QryProduto := TSQLQuery.Create(nil);
+  try
+    with QryProduto do
+    begin
+      SQLConnection := DMConexao.SQLConnection;
+      SQL.Clear;
+      SQL.Add('select prd.cod_produto');
+      SQL.Add(',prd.des_nomeproduto');
+      SQL.Add(',prd.des_descricao');
+      SQL.Add(',prd.val_preco');
+      SQL.Add('from tab_produto prd');
+      SQL.Add('where cod_produto = :cod_produto');
+      ParamByName('cod_produto').AsInteger := iCodigo;
+      Open;
+
+      Produto.Cod_Produto := FieldByName('COD_PRODUTO').AsInteger;
+      Produto.Des_NomeProduto := FieldByName('DES_NOMEPRODUTO').AsString;
+      Produto.Des_Descricao := FieldByName('DES_DESCRICAO').AsString;
+      Produto.Val_Preco := FieldByName('VAL_PRECO').AsFloat;
+
+    end;
+  finally
+    FreeAndNil(QryProduto);
+  end;
+end;
+
+function TProduto.Inserir(Produto: TProduto; out sErro: String): Boolean;
+begin
+  with DmTabelas.QryInserir, Produto do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('insert into tab_produto( ');
+    SQL.Add('des_nomeproduto');
+    SQL.Add(',des_descricao');
+    SQL.Add(',val_preco');
+    SQL.Add('values (:des_nomeproduto, ');
+    SQL.Add(':des_descricao');
+    SQL.Add(',:val_preco');
+
+    ParamByName('DES_NOMEPRODUTO').AsString := Des_NomeProduto;
+    ParamByName('DES_DESCRICAO').AsString := Des_Descricao;
+    ParamByName('VAL_PRECO').AsFloat := Val_Preco;
+
+    try
+      Prepared := True;
+      ExecSQL;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        Result := False;
+        sErro := 'Ocorreu um erro ao inserir um novo produto!' + sLineBreak + E.Message;
+        raise;
+      end;
+    end;
+  end;
+end;
+
+function TProduto.Alterar(Produto: TProduto; iCodigo: Integer; out sErro: String): Boolean;
+begin
+  with DmTabelas.QryAlterar, Produto do
+  begin
+    Result := False;
+    Close;
+    SQL.Clear;
+    SQL.Add('update tab_produto set ');
+    Sql.Add('des_nomeproduto = :des_nomeproduto ');
+    SQL.Add(',des_descricao = :des_descricao');
+    SQL.Add(',val_preco = :val_preco');
+    SQL.Add('where cod_produto = :cod_produto');
+
+    ParamByName('DES_NOMEPRODUTO').AsString := Des_NomeProduto;
+    ParamByName('DES_DESCRICAO').AsString := Des_Descricao;
+    ParamByName('VAL_PRECO').AsFloat := Val_Preco;
+    ParamByName('COD_PRODUTO').AsInteger := iCodigo;
+
+    try
+      Prepared := True;
+      ExecSQL();
+      Result:= True;
+    except on E: Exception do
+      begin
+        sErro := 'Ocorreu um erro ao alterar os dados do produto!' + sLineBreak + E.Message;
+        Result := False;
+        raise;
+      end;
+    end;
+  end;
+end;
+
+function TProduto.Excluir(iCodigo: Integer; out sErro: String): Boolean;
+begin
+  with DmTabelas.QryExcluir do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Text := 'delete from tab_produto where cod_produto = :cod_produto';
+    ParamByName('COD_PRODUTO').AsInteger := iCodigo;
+
+    try
+      Prepared := True;
+      ExecSQL();
+      Result := True;
+    except on E: Exception do
+      begin
+        sErro := 'Ocorreu um erro ao excluir o produto !' + sLineBreak + E.Message;
+        Result := False;
+        raise;
+      end;
+    end;
+  end;
+end;
+
+function TProduto.RetornaValorUnitario(iCodigo: integer): Double;
+var QryTemp : TSQLQuery;
+begin
+  QryTemp := TSQLQuery.Create(nil);
+  Result := 0;
+  try
+    with QryTemp do
+    begin
+      SQLConnection := DMConexao.SQLConnection;;
+      SQL.Clear;
+      SQL.Add('select cod_produto');
+      SQL.Add(',val_preco ');
+      SQL.Add('from tab_produto');
+      SQL.Add('where cod_produto = :cod_produto');
+      ParamByName('cod_produto').AsInteger := iCodigo;
+      Open;
+      Result := FieldByName('VAL_PRECO').AsFloat
+    end;
+  finally
+    FreeAndNil(QryTemp);
+  end;
+
+end;
+
+procedure TProduto.SetDes_Descricao(const Value: String);
+begin
+  if Value = EmptyStr then
+    raise EArgumentException.Create('O campo ''Descrição'' precisa ser preenchido !');
+
+  FDes_Descricao := Value;
+end;
+
+
+end.

@@ -1,0 +1,249 @@
+unit VendaController;
+
+interface
+
+uses System.SysUtils;
+
+Type
+  TVenda = class
+  private
+    FCod_Venda: Integer;
+    FDta_Venda: TDateTime;
+    FDes_NomeCliente: string;
+    FDes_Cep: string;
+    FDes_Endereco: string;
+    FDes_Complemento: string;
+    FDes_Bairro: string;
+    FDes_Cidade: string;
+    FDes_Estado: string;
+    FVal_TotalVenda: Double;
+    procedure SetDes_NomeCliente(const Value: String);
+
+  public
+    procedure Pesquisar(sNome, campoIndice: String);
+    procedure Carregar(Venda: TVenda;  iCodigo: Integer);
+    function Inserir(Venda: TVenda; out sErro: String): Boolean;
+    function Alterar(Venda: TVenda; iCodigo: Integer; out sErro: String): Boolean;
+    function Excluir(iCodigo: Integer; out sErro : String): Boolean;
+
+    property Cod_Venda: Integer read FCod_Venda write FCod_Venda;
+    property Dta_Venda: TDateTime read FDta_Venda write FDta_Venda;
+    property Des_NomeCliente: string read FDes_NomeCliente write SetDes_NomeCliente;
+    property Des_Cep: string read FDes_Cep write FDes_Cep;
+    property Des_Endereco: string read FDes_Endereco write FDes_Endereco;
+    property Des_Complemento: string read FDes_Complemento write FDes_Complemento;
+    property Des_Bairro: string read FDes_Bairro write FDes_Bairro;
+    property Des_Cidade: string read FDes_Cidade write FDes_Cidade;
+    property Des_Estado: string read FDes_Estado write FDes_Estado;
+    property Val_TotalVenda: Double read FVal_TotalVenda write FVal_TotalVenda;
+
+  end;
+
+implementation
+
+uses UDmTabelas, UDmConexao, Data.SqlExpr;
+
+{ TVenda }
+
+
+procedure TVenda.Pesquisar(sNome, campoIndice: String);
+begin
+  with DmTabelas.TblVendas do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('select vda.cod_venda, ');
+    SQL.Add('vda.dta_venda, ');
+    SQL.Add('vda.des_nomecliente, ');
+    SQL.Add('vda.des_cep, ');
+    SQL.Add('vda.des_endereco, ');
+    SQL.Add('vda.des_complemento, ');
+    SQL.Add('vda.des_bairro, ');
+    SQL.Add('vda.des_cidade, ');
+    SQL.Add('vda.des_estado, ');
+    SQL.Add('vda.val_total_venda as val_tot_venda, ');
+    SQL.Add('from tab_venda vda');
+    SQL.Add('where ' + campoIndice + ' like :pNOME');
+    SQL.Add('order by vda.dta_venda desc');
+    ParamByName('PNOME').AsString := sNome;
+    Prepared := True;
+    Open();
+  end;
+end;
+
+procedure TVenda.Carregar(Venda: TVenda; iCodigo: Integer);
+var QryVenda : TSQLQuery;
+begin
+  QryVenda := TSQLQuery.Create(nil);
+  try
+    with QryVenda do
+    begin
+      SQLConnection := DMConexao.SQLConnection;
+      SQL.Clear;
+      SQL.Add('select vda.cod_venda, ');
+      SQL.Add('vda.dta_venda, ');
+      SQL.Add('vda.des_nomecliente, ');
+      SQL.Add('vda.des_cep, ');
+      SQL.Add('vda.des_endereco, ');
+      SQL.Add('vda.des_complemento, ');
+      SQL.Add('vda.des_bairro, ');
+      SQL.Add('vda.des_cidade, ');
+      SQL.Add('vda.des_estado, ');
+      SQL.Add('vda.val_total_venda as val_tot_venda ');
+      SQL.Add('from tab_venda vda');
+      SQL.Add('where vda.cod_venda = :cod_venda');
+      SQL.Add('order by vda.dta_venda desc');
+
+      ParamByName('COD_VENDA').AsInteger := iCodigo;
+      Open;
+
+      Venda.Cod_Venda := FieldByName('COD_VENDA').AsInteger;
+      Venda.Dta_Venda := FieldByName('DTA_VENDA').AsDateTime;
+      Venda.Des_NomeCliente := FieldByName('DES_NOMECLIENTE').AsString;
+      Venda.Des_Cep := FieldByName('DES_CEP').AsString;
+      Venda.Des_Endereco := FieldByName('DES_ENDERECO').AsString;
+      Venda.Des_Complemento := FieldByName('DES_COMPLEMENTO').AsString;
+      Venda.Des_Bairro := FieldByName('DES_BAIRRO').AsString;
+      Venda.Des_Cidade := FieldByName('DES_CIDADE').AsString;
+      Venda.Des_Estado := FieldByName('DES_ESTADO').AsString;
+      Venda.Val_TotalVenda := FieldByName('VAL_TOT_VENDA').AsFloat;
+    end;
+  finally
+    FreeAndNil(QryVenda);
+  end;
+end;
+
+function TVenda.Inserir(Venda: TVenda; out sErro: String): Boolean;
+var ultimoCod_Venda: Integer;
+begin
+  with DmTabelas.QryInserir, Venda do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Add('insert into tab_venda(');
+    SQL.Add('dta_venda, ');
+    SQL.Add('des_nomecliente, ');
+    SQL.Add('des_cep, ');
+    SQL.Add('des_endereco, ');
+    SQL.Add('des_complemento, ');
+    SQL.Add('des_bairro, ');
+    SQL.Add('des_cidade, ');
+    SQL.Add('des_estado, ');
+    SQL.Add('val_total_venda) ');
+    SQL.Add('values (:dta_venda, ');
+    SQL.Add(':des_nomecliente, ');
+    SQL.Add(':des_cep, ');
+    SQL.Add(':des_endereco, ');
+    SQL.Add(':des_complemento, ');
+    SQL.Add(':des_bairro, ');
+    SQL.Add(':des_cidade, ');
+    SQL.Add(':des_estado, ');
+    SQL.Add(':val_total_venda)');
+
+    ParamByName('DTA_VENDA').AsDateTime := Dta_Venda;
+    ParamByName('DES_NOMECLIENTE').AsString := Des_NomeCliente;
+    ParamByName('DES_CEP').AsString := Des_Cep;
+    ParamByName('DES_ENDERECO').AsString := Des_Endereco;
+    ParamByName('DES_COMPLEMENTO').AsString := Des_Complemento;
+    ParamByName('DES_BAIRRO').AsString := Des_Bairro;
+    ParamByName('DES_CIDADE').AsString := Des_Cidade;
+    ParamByName('DES_ESTADO').AsString := Des_Estado;
+    ParamByName('VAL_TOTAL_VENDA').AsFloat := Val_TotalVenda;
+
+    try
+      Prepared := True;
+      ExecSQL;
+      Result := True;
+
+      DmTabelas.QryInserir.Close;
+      DmTabelas.QryInserir.SQL.Text := 'SELECT MAX(COD_VENDA) AS ULTIMOID FROM TAB_VENDA ';
+      DmTabelas.QryInserir.Open;
+      Venda.Cod_Venda := DmTabelas.QryInserir.FieldByName('ULTIMOID').AsInteger;
+
+    except
+      on E: Exception do
+      begin
+        Result := False;
+        sErro := 'Ocorreu um erro ao inserir uma nova venda!' + sLineBreak + E.Message;
+        raise;
+      end;
+    end;
+  end;
+end;
+
+function TVenda.Alterar(Venda: TVenda; iCodigo: Integer; out sErro: String): Boolean;
+begin
+  with DmTabelas.QryAlterar, Venda do
+  begin
+    Result := False;
+    Close;
+    SQL.Clear;
+    SQL.Add('update tab_venda set ');
+    SQL.Add('dta_venda = :dta_venda, ');
+    SQL.Add('des_nomecliente = :des_nomecliente, ');
+    SQL.Add('des_cep = :des_cep, ');
+    SQL.Add('des_endereco = :des_endereco, ');
+    SQL.Add('des_complemento = :des_complemento, ');
+    SQL.Add('des_bairro = :des_bairro, ');
+    SQL.Add('des_cidade = :des_cidade, ');
+    SQL.Add('des_estado = :des_estado, ');
+    SQL.Add('val_total_venda = :val_total_venda');
+    SQL.Add('where cod_venda = :cod_venda');
+
+    ParamByName('DTA_VENDA').AsDateTime := Dta_Venda;
+    ParamByName('DES_NOMECLIENTE').AsString := Des_NomeCliente;
+    ParamByName('DES_CEP').AsString := Des_Cep;
+    ParamByName('DES_ENDERECO').AsString := Des_Endereco;
+    ParamByName('DES_COMPLEMENTO').AsString := Des_Complemento;
+    ParamByName('DES_BAIRRO').AsString := Des_Bairro;
+    ParamByName('DES_CIDADE').AsString := Des_Cidade;
+    ParamByName('DES_ESTADO').AsString := Des_Estado;
+    ParamByName('VAL_TOTAL_VENDA').AsFloat := Val_TotalVenda;
+    ParamByName('COD_VENDA').AsInteger := iCodigo;
+
+    try
+      Prepared := True;
+      ExecSQL();
+    except on E: Exception do
+      begin
+        sErro := 'Ocorreu um erro ao alterar os dados da venda!' + sLineBreak + E.Message;
+        Result := False;
+        raise;
+      end;
+    end;
+    Result:= True;
+  end;
+end;
+
+function TVenda.Excluir(iCodigo: Integer; out sErro: String): Boolean;
+begin
+  with DmTabelas.QryExcluir do
+  begin
+    Close;
+    SQL.Clear;
+    SQL.Text := 'delete from tab_venda where cod_venda = :cod_venda';
+    ParamByName('COD_VENDA').AsInteger := iCodigo;
+
+    try
+      Prepared := True;
+      ExecSQL();
+      Result := True;
+    except on E: Exception do
+      begin
+        sErro := 'Ocorreu um erro ao excluir a venda !' + sLineBreak + E.Message;
+        Result := False;
+        raise;
+      end;
+    end;
+  end;
+end;
+
+procedure TVenda.SetDes_NomeCliente(const Value: String);
+begin
+  if Value = EmptyStr then
+    raise EArgumentException.Create('O campo ''Nome do Cliente'' precisa ser preenchido !');
+
+  FDes_NomeCliente := Value;
+end;
+
+end.

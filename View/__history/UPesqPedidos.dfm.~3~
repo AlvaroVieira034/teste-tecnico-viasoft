@@ -1,0 +1,55 @@
+object FrmPesqPedidos: TFrmPesqPedidos
+  Left = 0
+  Top = 0
+  Caption = 'Pesquisa de Pedidos'
+  ClientHeight = 403
+  ClientWidth = 802
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poMainFormCenter
+  PixelsPerInch = 96
+  TextHeight = 13
+  object PnlFundo: TPanel
+    Left = 0
+    Top = 0
+    Width = 802
+    Height = 403
+    Align = alClient
+    TabOrder = 0
+    ExplicitLeft = 312
+    ExplicitTop = 136
+    ExplicitWidth = 185
+    ExplicitHeight = 41
+    object GroupBox1: TGroupBox
+      Left = 1
+      Top = 1
+      Width = 800
+      Height = 401
+      Align = alClient
+      Caption = ' Selecione um Pedido '
+      TabOrder = 0
+      ExplicitLeft = 16
+      ExplicitTop = 0
+      ExplicitWidth = 753
+      ExplicitHeight = 377
+      object DbGridPedidos: TDBGrid
+        Left = 7
+        Top = 18
+        Width = 783
+        Height = 378
+        DataSource = DmTabelas.DsVendas
+        TabOrder = 0
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -11
+        TitleFont.Name = 'Tahoma'
+        TitleFont.Style = []
+      end
+    end
+  end
+end

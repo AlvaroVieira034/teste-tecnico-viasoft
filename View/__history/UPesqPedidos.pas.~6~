@@ -1,0 +1,50 @@
+unit UPesqPedidos;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Data.DB, Vcl.Grids, Vcl.DBGrids,
+  Vcl.StdCtrls, Vcl.ExtCtrls;
+
+type
+  TFrmPesqPedidos = class(TForm)
+    PnlFundo: TPanel;
+    GroupBox1: TGroupBox;
+    DbGridPedidos: TDBGrid;
+    procedure DbGridPedidosDblClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  FrmPesqPedidos: TFrmPesqPedidos;
+
+implementation
+
+{$R *.dfm}
+
+uses UMain, UDMConexao, UDmTabelas, VendaController, VendaItensController, UCadVenda, untFormat, Biblioteca;
+
+procedure TFrmPesqPedidos.DbGridPedidosDblClick(Sender: TObject);
+begin
+  with FrmCadVenda do
+  begin
+    EdtCodVenda.Text := IntToStr(DmTabelas.DsVendas.DataSet.FieldByName('COD_VENDA').AsInteger);
+    EdtDataVenda.Text := DateToStr(DmTabelas.DsVendas.DataSet.FieldByName('DTA_VENDA').AsDateTime);
+    EdtTotalVenda.Text := FormatFloat('##,###,##0.00', DmTabelas.DsVendas.DataSet.FieldByName('VAL_TOTAL_VENDA').AsFloat);
+    EdtNomeCliente.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_NOMECLIENTE').AsString;
+    EdtCep.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_CEP').AsString;
+    EdtEndereco.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_ENDERECO').AsString;
+    EdtComplemento.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_COMPLEMENTO').AsString;
+    EdtBairro.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_BAIRRO').AsString;
+    EdtCidade.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_CIDADE').AsString;
+    EdtEstado.Text := DmTabelas.DsVendas.DataSet.FieldByName('DES_ESTADO').AsString;
+    FrmCadVenda.pesqVenda := True;
+  end;
+  Close;
+end;
+
+end.

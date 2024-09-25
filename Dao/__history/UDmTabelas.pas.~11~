@@ -1,0 +1,68 @@
+unit UDmTabelas;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, Data.FMTBcd, Datasnap.Provider,
+  Datasnap.DBClient, Data.DB, Data.SqlExpr;
+
+type
+  TDataModule1 = class(TDataModule)
+    DsProdutos: TDataSource;
+    QryInserir: TSQLQuery;
+    IntegerField1: TIntegerField;
+    StringField1: TStringField;
+    StringField2: TStringField;
+    SingleField1: TSingleField;
+    QryAlterar: TSQLQuery;
+    IntegerField2: TIntegerField;
+    StringField3: TStringField;
+    StringField4: TStringField;
+    SingleField2: TSingleField;
+    QryExcluir: TSQLQuery;
+    IntegerField3: TIntegerField;
+    StringField5: TStringField;
+    StringField6: TStringField;
+    SingleField3: TSingleField;
+    QryPesquisar: TSQLQuery;
+    IntegerField4: TIntegerField;
+    StringField7: TStringField;
+    StringField8: TStringField;
+    SingleField4: TSingleField;
+    QryPesquisarItens: TSQLQuery;
+    IntegerField5: TIntegerField;
+    StringField9: TStringField;
+    StringField10: TStringField;
+    SingleField5: TSingleField;
+    QryTemp: TSQLQuery;
+    IntegerField6: TIntegerField;
+    StringField11: TStringField;
+    StringField12: TStringField;
+    SingleField6: TSingleField;
+    CdsProdutos: TClientDataSet;
+    CdsProdutosCOD_PRODUTO: TIntegerField;
+    CdsProdutosDES_NOMEPRODUTO: TStringField;
+    CdsProdutosDES_DESCRICAO: TStringField;
+    CdsProdutosVAL_PRECO: TSingleField;
+    DspProdutos: TDataSetProvider;
+    TblProdutos: TSQLQuery;
+    TblProdutosCOD_PRODUTO: TIntegerField;
+    TblProdutosDES_NOMEPRODUTO: TStringField;
+    TblProdutosDES_DESCRICAO: TStringField;
+    TblProdutosVAL_PRECO: TSingleField;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  DataModule1: TDataModule1;
+
+implementation
+
+{%CLASSGROUP 'Vcl.Controls.TControl'}
+
+{$R *.dfm}
+
+end.
